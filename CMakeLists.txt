@@ -11,7 +11,7 @@ find_package(Armadillo REQUIRED)
 set(HEADER_FILES
         include/EKF.h
         include/RobotModel.h
-        include/FlowField.h)
+        include/FlowField.h include/MyHelper.h)
 
 
 set(SOURCE_FILES

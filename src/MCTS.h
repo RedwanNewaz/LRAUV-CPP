@@ -24,9 +24,10 @@ typedef unordered_map<int, Traj> QNode;
 
 struct ActionValue
 {
-    vec2 action;
+    vec2 u;
     double reward;
     int best_index;
+    QNode qnode;
 };
 
 class MCTS {
@@ -34,10 +35,7 @@ public:
     MCTS(const string& filename);
     Traj simulate(const mat& xEst, const mat& PEst, const vec2& u, int K, FlowField& field);
     ActionValue Search(const vec2& goal, const mat &xEst, const mat &PEst, int timeout);
-    QNode get_belief()
-    {
-        return qnode_;
-    }
+
 protected:
     vector<vec2> availableActions(const vector<double> &a, const vector<double>& b)
     {
@@ -53,7 +51,7 @@ protected:
 
 private:
     FlowField field_;
-    QNode qnode_;
+
 };
 
 

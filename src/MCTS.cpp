@@ -32,7 +32,7 @@ ActionValue MCTS::Search(const vec2& goal, const mat &xEst, const mat &PEst, int
     int count = 0;
     vector<double> a {-0.5, 0.0, 0.5};
     auto A = availableActions(a, a);
-
+    QNode qnode_;
     for (auto& u: A)
     {
         auto traj = simulate(xEst, PEst, u, timeout, field_);
@@ -67,6 +67,6 @@ ActionValue MCTS::Search(const vec2& goal, const mat &xEst, const mat &PEst, int
         }
     }
     cout<<"[a"<<best_action<<"] = "<< Rewards[best_action] << endl;
-    return {A[best_action], max_reward, best_action};
+    return {A[best_action], max_reward, best_action, qnode_};
 }
 
