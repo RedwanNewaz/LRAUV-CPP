@@ -66,7 +66,7 @@ ActionValue MCTS::Search(const vec2& goal, const mat &xEst, const mat &PEst, int
             max_reward = Rewards[j];
         }
     }
-    cout<<"[a"<<best_action<<"] = "<< Rewards[best_action] << endl;
+//    cout<<"[a"<<best_action<<"] = "<< Rewards[best_action] << endl;
     return {A[best_action], max_reward, best_action, qnode_};
 }
 

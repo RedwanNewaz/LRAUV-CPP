@@ -25,8 +25,10 @@ public:
         VV = load_mat<double>(file, "VV");
         assert(UU.n_cols == VV.n_cols);
         assert(UU.n_rows == VV.n_rows);
-        ku = 0.2;
-        kw = 0.2;
+//        ku = 0.2;
+//        kw = 0.2;
+        ku = 0.1;
+        kw = 0.1;
     }
 
     void set(double ku, double kw)

@@ -15,6 +15,18 @@ inline double gauss_likelihood(double x, double sigma)
            exp(- pow(x, 2)/ (2 * pow(sigma, 2)));
 }
 
+inline vector<vec2> availableActions(const vector<double> &a, const vector<double>& b)
+{
+    vector<vec2>result;
+    for (int i = 0; i < a.size(); ++i) {
+        for (int j = 0; j < b.size(); ++j)
+        {
+            result.push_back({a[i], b[j]});
+        }
+    }
+    return result;
+}
+
 struct Traj
 {
     std::vector<double> x, y;
@@ -35,19 +47,6 @@ public:
     MCTS(const string& filename);
     Traj simulate(const mat& xEst, const mat& PEst, const vec2& u, int K, FlowField& field);
     ActionValue Search(const vec2& goal, const mat &xEst, const mat &PEst, int timeout);
-
-protected:
-    vector<vec2> availableActions(const vector<double> &a, const vector<double>& b)
-    {
-        vector<vec2>result;
-        for (int i = 0; i < a.size(); ++i) {
-            for (int j = 0; j < b.size(); ++j)
-            {
-                result.push_back({a[i], b[j]});
-            }
-        }
-        return result;
-    }
 
 private:
     FlowField field_;

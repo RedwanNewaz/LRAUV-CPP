@@ -5,8 +5,56 @@
 #ifndef LRAUV_MCTS_MYHELPER_H
 #define LRAUV_MCTS_MYHELPER_H
 #include "../src/MCTS.h"
+#include <fstream>
 #define GOAL_RADIUS 0.8
 #define ROBOT_RADIUS (0.5)
+#define GRID_SIZE (50)
+#define GRID_RESOLUTION (0.5)
+#define HASH(a)  a(0)*10 + a(1)*100
+
+struct problem
+{
+    string flow_data;
+    double initial_loc[2];
+    double goal_loc[2];
+};
+unordered_map<int, int> ACTION_HASH;
+
+problem parse_problem(const string& filename)
+{
+    ifstream inFile;
+    inFile.open(filename);
+    if (!inFile) {
+        cout << "Unable to open file";
+        exit(1); // terminate with error
+    }
+    vector<double> act{-0.5, 0, 0.5};
+    auto A = availableActions(act, act);
+    int count = 0;
+    for (auto& a:A)
+        ACTION_HASH[HASH(a)] = count++;
+
+    problem prob;
+    inFile >> prob.flow_data;
+    inFile >> prob.initial_loc[0]; inFile>>prob.initial_loc[1];
+    inFile >> prob.goal_loc[0]; inFile>>prob.goal_loc[1];
+    return prob;
+}
+
+
+
+int state_indx(const mat& xEst, const mat&u)
+{
+    int x = xEst(0)/GRID_RESOLUTION;
+    int y = xEst(1)/GRID_RESOLUTION;
+    int a = ACTION_HASH[HASH(u)];
+    int id = (x+ GRID_SIZE*y) << a;
+    return id;
+}
+
+
+
+
 
 void draw_robot(const mat& xEst, double radius)
 {
@@ -81,18 +129,24 @@ void draw_sensors(const mat& xEst, double radius,  const QNode& qnode, int best_
     }
 
 }
-
+Traj track;
 void sim_update(const mat& FxEst, const ActionValue& action, const vec2& landmark,  FlowField& field)
 {
     plt::cla();
+    draw_robot(landmark, 1);
     draw_robot(FxEst, ROBOT_RADIUS);
     draw_sensors(FxEst, GOAL_RADIUS, action.qnode, action.best_index);
-    draw_robot(landmark, 1);
+    track.x.push_back(FxEst(0));
+    track.y.push_back(FxEst(1));
+
     field.plot();
 //    plt::axis("equal");
-    plt::xlim(-1, 25);
-    plt::ylim(0, 30);
+    plt::xlim(-2, 25);
+    plt::ylim(-2, 30);
+
+    plt::plot(track.x, track.y, "b");
     plt::pause(0.01);
+
 
 }
 
