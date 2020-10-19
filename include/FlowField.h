@@ -52,6 +52,9 @@ public:
     {
         // u and v are respectively the x and y components of the arrows we're plotting
         std::vector<double> x, y, u, v;
+        std::map<std::string, std::string> keywords;
+        keywords["color"] = "0.8";
+//        keywords["alpha"] = "0.4";
         for (int i = 0; i < UU.n_rows; i++) {
             for (int j = 0; j < UU.n_cols; j++) {
                 x.push_back(i);
@@ -61,7 +64,7 @@ public:
             }
         }
 
-        plt::quiver(x, y, u, v);
+        plt::quiver(x, y, u, v, keywords);
 //        plt::show();
     }
 

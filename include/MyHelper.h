@@ -5,12 +5,10 @@
 #ifndef LRAUV_MCTS_MYHELPER_H
 #define LRAUV_MCTS_MYHELPER_H
 #include "../src/MCTS.h"
-#include <fstream>
 #define GOAL_RADIUS 0.8
 #define ROBOT_RADIUS (0.5)
-#define GRID_SIZE (50)
-#define GRID_RESOLUTION (0.5)
-#define HASH(a)  a(0)*10 + a(1)*100
+#define MAKE_VIDEO
+
 
 struct problem
 {
@@ -18,7 +16,7 @@ struct problem
     double initial_loc[2];
     double goal_loc[2];
 };
-unordered_map<int, int> ACTION_HASH;
+
 
 problem parse_problem(const string& filename)
 {
@@ -28,11 +26,6 @@ problem parse_problem(const string& filename)
         cout << "Unable to open file";
         exit(1); // terminate with error
     }
-    vector<double> act{-0.5, 0, 0.5};
-    auto A = availableActions(act, act);
-    int count = 0;
-    for (auto& a:A)
-        ACTION_HASH[HASH(a)] = count++;
 
     problem prob;
     inFile >> prob.flow_data;
@@ -40,19 +33,6 @@ problem parse_problem(const string& filename)
     inFile >> prob.goal_loc[0]; inFile>>prob.goal_loc[1];
     return prob;
 }
-
-
-
-int state_indx(const mat& xEst, const mat&u)
-{
-    int x = xEst(0)/GRID_RESOLUTION;
-    int y = xEst(1)/GRID_RESOLUTION;
-    int a = ACTION_HASH[HASH(u)];
-    int id = (x+ GRID_SIZE*y) << a;
-    return id;
-}
-
-
 
 
 
@@ -73,45 +53,6 @@ void draw_robot(const mat& xEst, double radius)
 }
 
 
-double fit_points(Traj pts, const mat& xEst)
-{
-    int nPoints = pts.x.size();
-    if( nPoints < 2 ) {
-        // Fail: infinitely many lines passing through this single point
-        cerr<<"not enough points available" <<endl;
-        return false;
-    }
-    double sumX=0, sumY=0, sumXY=0, sumX2=0;
-    for(int i=0; i<nPoints; i++) {
-        sumX +=     pts.x[i];
-        sumY +=     pts.y[i];
-        sumXY +=    pts.x[i] * pts.y[i];
-        sumX2 +=    pts.x[i] * pts.x[i];
-    }
-    double xMean = sumX / nPoints;
-    double yMean = sumY / nPoints;
-    double denominator = sumX2 - sumX * xMean;
-    // You can tune the eps (1e-7) below for your specific task
-    if( std::fabs(denominator) < 1e-7 ) {
-        // Fail: it seems a vertical line
-        cerr<<" it seems a vertical line" <<endl;
-        return false;
-    }
-
-    double slope = (sumXY - sumX * yMean) / denominator;
-    double yInt = yMean - slope * xMean;
-    auto f = [&](double x)
-    {
-        return slope*x + yInt;
-    };
-
-    vector<double>x{xEst(0), pts.x[nPoints-1]};
-    vector<double>y{xEst(1), f(pts.x[nPoints-1])};
-    return atan2(y[1]- y[0], x[1] - x[0]);
-
-
-}
-
 
 void draw_sensors(const mat& xEst, double radius,  const QNode& qnode, int best_node)
 {
@@ -130,23 +71,54 @@ void draw_sensors(const mat& xEst, double radius,  const QNode& qnode, int best_
 
 }
 Traj track;
-void sim_update(const mat& FxEst, const ActionValue& action, const vec2& landmark,  FlowField& field)
+int index_num = 0;
+void sim_view(NodePtr node,  FlowField& field)
 {
+    auto FxEst = node->state.xEst;
+    auto landmark = node->state.landmark;
+    auto show_sesnors = [&]()
+    {
+        double radius1 = ROBOT_RADIUS - 0.2;
+        double radius2 = ROBOT_RADIUS + 1.0;
+        if(! node->parent) return ;
+        for(auto& child: node->parent->children)
+        {
+            double q = child->dirAngle;
+            vector<double> x {FxEst(0)+ radius1*cos(q), FxEst(0)+ radius2*cos(q) };
+            vector<double> y {FxEst(1)+ radius1*sin(q), FxEst(1)+ radius2*sin(q) };
+            if(child == node)
+                plt::plot(x, y, "--b");
+            else
+                plt::plot(x, y, "--r");
+        }
+    };
+
+
     plt::cla();
     draw_robot(landmark, 1);
     draw_robot(FxEst, ROBOT_RADIUS);
-    draw_sensors(FxEst, GOAL_RADIUS, action.qnode, action.best_index);
+    show_sesnors();
     track.x.push_back(FxEst(0));
     track.y.push_back(FxEst(1));
 
     field.plot();
-//    plt::axis("equal");
-    plt::xlim(-2, 25);
-    plt::ylim(-2, 30);
 
+//    plt::xlim(-2, 42 + 11);
+//    plt::ylim(-2, 21 + 11);
+    plt::xlim(-2, 22 + 11);
+    plt::ylim(-2, 15 + 11);
+    plt::axis("off");
+//    plt::axis("square");
     plt::plot(track.x, track.y, "b");
     plt::pause(0.01);
 
+#ifdef MAKE_VIDEO
+    char* pad = "%04d";
+    char s[100];
+    sprintf(s, pad, atoi(to_string(index_num++).c_str()));
+    auto name = "../result/video/im"+string(s)+".png";
+    plt::save(name);
+#endif
 
 }
 

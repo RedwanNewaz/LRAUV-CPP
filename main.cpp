@@ -1,5 +1,7 @@
 #include "MyHelper.h"
 #include <cassert>
+#include "src/MCTS.h"
+#include "FlowField.h"
 
 
 
@@ -18,39 +20,25 @@ int main(int argc, char* argv[])
     FlowField field(prob.flow_data);
     mat xEst(4, 1, fill::zeros);
     mat PEst(4, 4, fill::zeros);
-    EKF ekf;
     xEst(0) = prob.initial_loc[0] ;  xEst(1) = prob.initial_loc[1] ;
     int sample_time = 50;
 
     vec2 landmark{prob.goal_loc[0], prob.goal_loc[1]};
     MCTS mcts(prob.flow_data);
-    vec2 u{0,0};
+    auto root = mcts.Search(landmark, xEst, PEst, sample_time);
 
-    unordered_map<int, ActionValue> History;
-    ActionValue action;
-    double dist = 100;
-    do{
-        int id = state_indx(xEst, u);
-        if (History.find(id) != History.end())
+    queue<NodePtr> q;
+    q.push(root);
+    while(!q.empty())
+    {
+        auto node = q.front();
+        q.pop();
+        sim_view(node, field);
+        for(auto& child: node->children)
         {
-            action = History[id];
+            q.push(child);
         }
-        else
-        {
-            action = mcts.Search(landmark, xEst, PEst, sample_time);
-            History[id] = action;
-        }
-        sim_update(xEst, action, landmark, field);
-        u = action.u;
-        auto z = ekf.measurement(xEst, u);
-        auto ud = ekf.control_input(u);
-        tie(xEst, PEst) = ekf.estimation(xEst, PEst, z, ud);
-        vec2 current{xEst(0), xEst(1)};
-        dist = norm(current-landmark, 2);
-
-    }while (dist>1);
-
-
+    }
     plt::show();
 
     return 0;
