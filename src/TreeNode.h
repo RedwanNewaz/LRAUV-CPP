@@ -14,7 +14,7 @@
 
 
 #define GRID_SIZE (50)
-#define GRID_RESOLUTION (0.5)
+#define GRID_RESOLUTION (0.05)
 
 using namespace std;
 using namespace arma;
@@ -22,7 +22,8 @@ struct State
 {
     mat xEst, PEst;
     vec2 landmark;
-    void update( const vec2& u, int index)
+    vec2 current;
+    void update( const vec2& u, int index, const vector<int>&sensors)
     {
         auto z = ekf_.measurement(xEst, u);
         auto ud = ekf_.control_input(u);
@@ -31,12 +32,15 @@ struct State
         int x = xEst(0)/GRID_RESOLUTION;
         int y = xEst(1)/GRID_RESOLUTION;
         state_id_ = (x+ GRID_SIZE*y) << index;
+        for (auto &s: sensors)
+            state_id_ = state_id_ << s;
         a_id_ = index;
+        current(0)=xEst(0); current(1)=xEst(1);
     }
     bool isTerminal()
     {
-        vec2 current;
-        current(0)=xEst(0); current(1)=xEst(1);
+
+
         auto dist = norm(current-landmark, 2);
         return dist <= 1;
     }
@@ -49,7 +53,7 @@ struct State
 
 private:
     EKF ekf_;
-    int a_id_, state_id_;
+    long a_id_, state_id_;
 };
 
 

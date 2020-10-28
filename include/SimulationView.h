@@ -11,6 +11,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/core/types.hpp>
 #include "../src/TreeNode.h"
+#include "DynamicObstacles.h"
 #define WINDOW_HEIGHT (800)
 #define WINDOW_WIDTH (800)
 
@@ -34,6 +35,7 @@ public:
     void draw_circle(const mat& point,  const Scalar& color)
     {
         center = transform(point);
+        robot_(0) = point(0); robot_(1) = point(1);
         traj.push_back(center);
         cv::circle(backgroundImg, center, robot_radius, color,  FILLED);
 
@@ -84,11 +86,27 @@ public:
         return backgroundImg;
     }
 
+    void show_obstacles(const vector<DynamicObstacle>& obstacles)
+    {
+        cv::Scalar colorBlue(255,0, 0);
+        cv::Scalar colorPink(147,20, 255);
+        for (auto obs:obstacles)
+        {
+            vec2 o = obs.get();
+            auto dist = norm(o-robot_, 2);
+            if(dist<=SENSING_RADIUS)
+                draw_circle(obs.get(), 10, colorPink);
+            else
+                draw_circle(obs.get(), 10, colorBlue);
+        }
+    }
+
 
 private:
     double xlim, ylim;
     cv::Mat backgroundImg;
     cv::Point2f center;
+    vec2 robot_;
     const double robot_radius = 20;
 
 

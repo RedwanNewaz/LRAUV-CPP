@@ -6,9 +6,15 @@
 
 #define debug(x) std::cout<<x<<std::endl
 
-MCTS::MCTS(const string &filename):field_(filename) {
+MCTS::MCTS(const string &filename, const string& backImgFile, int num_obstacles):field_(filename) {
     vector<double> a {-0.5, 0.0, 0.5};
     action_set_ = availableActions(a, a);
+    auto size = field_.size();
+    bb_(0) = bb_(2) = 0;
+    bb_(1) = size.first; bb_(3) = size.second;
+    random_obstacles(obstacles_, bb_, num_obstacles);
+    background_ = cv::imread(backImgFile, IMREAD_COLOR);
+
 }
 
 
@@ -54,9 +60,16 @@ NodePtr MCTS::Search(const vec2& goal, const mat &xEst, const mat &PEst, int tim
 
 NodePtr MCTS::Select(NodePtr root, State s) {
 
+    auto target_size = field_.size();
     double dist = 100;
     int loop = 0;
     do {
+        // update obstacles
+        for(auto&o :obstacles_)
+            o.update(obstacles_,bb_);
+
+//        root = Expand(root, s);
+
         if(!find(root, s))
         {
 //            debug("expanding node " << loop++);
@@ -71,9 +84,15 @@ NodePtr MCTS::Select(NodePtr root, State s) {
         }
         // state update
         int best_index = root->selected_action;
-        s.update(action_set_[best_index], best_index);
+        s.update(action_set_[best_index], best_index, sensors_);
         root->numVists += 1;
 
+        SimultionView sim_view(background_, target_size.first, target_size.second);
+        sim_view(root);
+        sim_view.show_obstacles(obstacles_);
+        sim_view.show();
+        for(auto o:obstacles_)
+            assert(norm(o.get()-s.current, 2)> 1 && "Robot collide :-( ");
 
     }while (!s.isTerminal());
     debug("[reused node ] "<< loop);
@@ -82,45 +101,72 @@ NodePtr MCTS::Select(NodePtr root, State s) {
 
 NodePtr MCTS::Expand(NodePtr root, const State& s) {
 
-    vector<double>Rewards, Angles;
+    vector<double>Rewards, Angles, Costs;
     int action_index = 0;
     QNode qnode_;
+    vector<vec2> obstacles;
+
+    tie(obstacles, sensors_) = sense_obstacles(obstacles_, s);
+    vector<vec2> goal{s.landmark};
+
+    auto rollout = [&](const Traj& traj, const vec2& u, const vector<vec2>& landmarks)
+    {
+//        auto traj = Simulate(s.xEst, s.PEst, u, sample_time_, field_);
+        size_t NP = traj.x.size();
+        vector<double> probs = vector<double>(NP, 1.0/double(NP));
+        for (auto& landmark: landmarks)
+        {
+            for (int i = 0; i < NP; ++i) {
+                vec2 z;
+                z(0) = traj.x[i]; z(1) = traj.y[i];
+                auto dz = norm(s.landmark - z, 2);
+                probs[i] *= gauss_likelihood(dz, 0.5);
+            }
+        }
+
+        return probs;
+    };
 
     for (auto& u: action_set_)
     {
         auto node = std::make_shared<TreeNode>(s, action_index, root);
         root->children.push_back(node->getPtr());
-
         auto traj = Simulate(s.xEst, s.PEst, u, sample_time_, field_);
-        size_t NP = traj.x.size();
-        vector<double> probs = vector<double>(NP, 1.0/double(NP));
-        for (int i = 0; i < NP; ++i) {
-            vec2 z;
-            z(0) = traj.x[i]; z(1) = traj.y[i];
-            auto dz = norm(s.landmark - z, 2);
-            probs[i] *= gauss_likelihood(dz, 0.5);
-        }
+        auto probs = rollout(traj, u, goal);
+        auto costs = rollout(traj, u, obstacles);
+
         double reward = std::accumulate(probs.begin(), probs.end(), 0.0);
+        double cost = std::accumulate(costs.begin(), costs.end(), 0.0);
         Rewards.push_back(reward);
+        Costs.push_back(cost);
         qnode_[action_index++] = traj;
 
         double angle = fit_points(traj, s.xEst);
         Angles.push_back(angle);
     }
 
-    double total_reward = std::accumulate(Rewards.begin(), Rewards.end(), 0.0);
-    transform(Rewards.begin(), Rewards.end(), Rewards.begin(), [&](double val){return val/total_reward;});
+    auto normalize = [](vector<double>&data)
+    {
+        double total_sum = std::accumulate(data.begin(), data.end(), 0.0);
+        transform(data.begin(), data.end(), data.begin(), [&](double val){return val/total_sum;});
+    };
+
+    normalize(Rewards);
+    normalize(Costs);
+
+
     double max_reward = 0;
     int best_action = 0;
 //    greedy search is better than UCT search
 //    double explorationValue = 0.07;
     for (int j = 0; j < action_set_.size(); ++j) {
-        root->children[j]->totalReward = Rewards[j];
+        double utlity = Rewards[j] -  ( lambda * Costs[j]);
+        root->children[j]->totalReward = utlity;
         root->children[j]->dirAngle = Angles[j];
 //        double nodeValue = Rewards[j] / root->children[j]->numVists + explorationValue * sqrt(
 //                2 * log(root->numVists) / root->children[j]->numVists);
 //        if(nodeValue > max_reward)
-        if(Rewards[j] > max_reward)
+        if(utlity > max_reward)
         {
             best_action = j;
             max_reward = Rewards[j];
