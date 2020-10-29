@@ -14,7 +14,7 @@
 
 
 #define GRID_SIZE (50)
-#define GRID_RESOLUTION (0.05)
+#define GRID_RESOLUTION (0.5)
 
 using namespace std;
 using namespace arma;

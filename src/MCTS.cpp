@@ -91,9 +91,19 @@ NodePtr MCTS::Select(NodePtr root, State s) {
         sim_view(root);
         sim_view.show_obstacles(obstacles_);
         sim_view.show();
-        for(auto o:obstacles_)
-            assert(norm(o.get()-s.current, 2)> 1 && "Robot collide :-( ");
+        DynamicObstacle r(s.current);
+        for(auto &o:obstacles_)
+        {
+            if(norm(o.get()-s.current, 2) <= 1)
+                assert(norm(o.get()-s.current, 2)> 1 && "Robot collide :-( ");
 
+            if(norm(o.get()-s.current, 2) <= 2)
+            {
+                o.ressolve_collision(r);
+                continue;
+            }
+
+        }
     }while (!s.isTerminal());
     debug("[reused node ] "<< loop);
     return root;
