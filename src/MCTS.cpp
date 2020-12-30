@@ -119,7 +119,7 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
     tie(obstacles, sensors_) = sense_obstacles(obstacles_, s);
     vector<vec2> goal{s.landmark};
 
-    auto rollout = [&](const Traj& traj, const vec2& u, const vector<vec2>& landmarks)
+    auto rollout = [&](const Traj& traj, const vec2& u, const vector<vec2>& landmarks, double sigma)
     {
 //        auto traj = Simulate(s.xEst, s.PEst, u, sample_time_, field_);
         size_t NP = traj.x.size();
@@ -130,7 +130,7 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
                 vec2 z;
                 z(0) = traj.x[i]; z(1) = traj.y[i];
                 auto dz = norm(s.landmark - z, 2);
-                probs[i] *= gauss_likelihood(dz, 0.5);
+                probs[i] *= gauss_likelihood(dz, sigma);
             }
         }
 
@@ -142,8 +142,8 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
         auto node = std::make_shared<TreeNode>(s, action_index, root);
         root->children.push_back(node->getPtr());
         auto traj = Simulate(s.xEst, s.PEst, u, sample_time_, field_);
-        auto probs = rollout(traj, u, goal);
-        auto costs = rollout(traj, u, obstacles);
+        auto probs = rollout(traj, u, goal, 0.5);
+        auto costs = rollout(traj, u, obstacles, 0.35);
 
         double reward = std::accumulate(probs.begin(), probs.end(), 0.0);
         double cost = std::accumulate(costs.begin(), costs.end(), 0.0);
@@ -171,6 +171,7 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
 //    double explorationValue = 0.07;
     for (int j = 0; j < action_set_.size(); ++j) {
         double utlity = Rewards[j] -  ( lambda * Costs[j]);
+//        double utlity = Rewards[j]/Costs[j];
         root->children[j]->totalReward = utlity;
         root->children[j]->dirAngle = Angles[j];
 //        double nodeValue = Rewards[j] / root->children[j]->numVists + explorationValue * sqrt(
@@ -183,6 +184,8 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
 //            max_reward = nodeValue;
         }
     }
+    if(max_reward < 0)
+        cout <<"[warning] negative reward " << max_reward <<endl;
     return root->children[best_action];
 }
 
