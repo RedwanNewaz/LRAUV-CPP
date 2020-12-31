@@ -18,7 +18,7 @@
 #include "DynamicObstacles.h"
 #include "SimulationView.h"
 using namespace std;
-static double lambda = 1.20; //1.20;
+static double lambda = 2.0; //1.20;
 inline double gauss_likelihood(double x, double sigma)
 {
     return 1.0/sqrt(2.0 * M_PI * pow(sigma,2) ) *

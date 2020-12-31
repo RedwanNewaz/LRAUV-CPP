@@ -158,7 +158,7 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
         root->children.push_back(node->getPtr());
         auto traj = Simulate(s.xEst, s.PEst, u, sample_time_, field_);
         auto probs = rollout(traj, u, goal, 0.5);
-        auto costs = rollout(traj, u, obstacles, 0.35);
+        auto costs = rollout(traj, u, obstacles, 0.5);
 
         double reward = std::accumulate(probs.begin(), probs.end(), 0.0);
         double cost = std::accumulate(costs.begin(), costs.end(), 0.0);
