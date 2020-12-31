@@ -183,24 +183,19 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
     double max_reward = 0;
     int best_action = 0;
 //    greedy search is better than UCT search
-//    double explorationValue = 0.07;
+    double explorationValue = 0.7;
     for (int j = 0; j < action_set_.size(); ++j) {
-        double utility = Rewards[j] - (lambda * Costs[j]);
-//        double utility = Rewards[j]/Costs[j];
+        double utility = Rewards[j] - (lambda * Costs[j]) +
+                        explorationValue * sqrt(2 * log(root->numVists) / max(1, root->children[j]->numVists));
         root->children[j]->totalReward = utility;
         root->children[j]->dirAngle = Angles[j];
-//        double nodeValue = Rewards[j] / root->children[j]->numVists + explorationValue * sqrt(
-//                2 * log(root->numVists) / root->children[j]->numVists);
-//        if(nodeValue > max_reward)
         if (isnan(utility))
             cerr << "utility is nan r" << Rewards[j] <<" \t c "<< Costs[j] << " o"<< obstacles.size() << endl;
-
 
         if(utility > max_reward)
         {
             best_action = j;
             max_reward = Rewards[j];
-//            max_reward = nodeValue;
         }
     }
 //
