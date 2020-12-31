@@ -57,6 +57,7 @@ public:
         // draw goal
         draw_circle(node->state.landmark, 30, colorGreen);
         // draw robot
+//        cout<<"[robot ]\n " << node->state.xEst << endl;
         draw_circle(node->state.xEst, colorYellow);
         draw_circle(node->state.xEst, 12, colorRed);
 

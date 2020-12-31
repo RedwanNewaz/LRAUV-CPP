@@ -6,6 +6,21 @@
 
 #define debug(x) std::cout<<x<<std::endl
 
+#include <random>
+inline int select_action(int action, int num_actions)
+{
+
+
+    double value = ((double) rand() / (RAND_MAX)) ;
+//    cout << "[random value] "<< value << endl;
+
+    if (value <= 0.8)
+        return action;
+    else
+        return rand() % num_actions ;
+
+}
+
 MCTS::MCTS(const string &filename, const string& backImgFile, int num_obstacles):field_(filename) {
     vector<double> a {-0.5, 0.0, 0.5};
     action_set_ = availableActions(a, a);
@@ -188,7 +203,10 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
 //            max_reward = nodeValue;
         }
     }
-    cout << "[best_action] " << best_action << endl;
+//
+    best_action = select_action(best_action, action_set_.size());
+//    cout << "[best_action] " << best_action << endl;
+
     if(max_reward < 0)
         cout <<"[warning] negative reward " << max_reward <<endl;
     return root->children[best_action];
