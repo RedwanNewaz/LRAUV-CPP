@@ -129,7 +129,7 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
             for (int i = 0; i < NP; ++i) {
                 vec2 z;
                 z(0) = traj.x[i]; z(1) = traj.y[i];
-                auto dz = norm(s.landmark - z, 2);
+                auto dz = norm(landmark - z, 2);
                 probs[i] *= gauss_likelihood(dz, sigma);
             }
         }
@@ -170,20 +170,25 @@ NodePtr MCTS::Expand(NodePtr root, const State& s) {
 //    greedy search is better than UCT search
 //    double explorationValue = 0.07;
     for (int j = 0; j < action_set_.size(); ++j) {
-        double utlity = Rewards[j] -  ( lambda * Costs[j]);
-//        double utlity = Rewards[j]/Costs[j];
-        root->children[j]->totalReward = utlity;
+        double utility = Rewards[j] - (lambda * Costs[j]);
+//        double utility = Rewards[j]/Costs[j];
+        root->children[j]->totalReward = utility;
         root->children[j]->dirAngle = Angles[j];
 //        double nodeValue = Rewards[j] / root->children[j]->numVists + explorationValue * sqrt(
 //                2 * log(root->numVists) / root->children[j]->numVists);
 //        if(nodeValue > max_reward)
-        if(utlity > max_reward)
+        if (isnan(utility))
+            cerr << "utility is nan r" << Rewards[j] <<" \t c "<< Costs[j] << " o"<< obstacles.size() << endl;
+
+
+        if(utility > max_reward)
         {
             best_action = j;
             max_reward = Rewards[j];
 //            max_reward = nodeValue;
         }
     }
+    cout << "[best_action] " << best_action << endl;
     if(max_reward < 0)
         cout <<"[warning] negative reward " << max_reward <<endl;
     return root->children[best_action];

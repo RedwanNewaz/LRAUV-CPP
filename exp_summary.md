@@ -13,6 +13,8 @@ finally the parameter --demo is used to visualize the results.
 * [Exp] 61/1.txt --obs 7
 * [Exp] 111/4.txt --obs 3
 * [Exp] 111/1.txt --obs 7
+* [Exp] 111/4.txt --obs 8
+
 
 ## Hyper-parameter tuning 
 The success of the planner largely depends on hyper-parameters.
